@@ -9,7 +9,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const moment = require('moment');
 const cors = require('cors');
-
+const helmet = require('helmet');
 const APP_PORT = process.env.APP_PORT || 8000;
 const PLAID_CLIENT_ID = process.env.PLAID_CLIENT_ID;
 const PLAID_SECRET = process.env.PLAID_SECRET;
@@ -92,6 +92,19 @@ app.post('/api/info', function (request, response, next) {
     products: PLAID_PRODUCTS,
   });
 });
+
+/////////////////////
+app.use(helmet());
+app.use(helmet.frameguard({ action: 'deny' })); // Prevent iframe embedding
+app.use(
+  helmet.contentSecurityPolicy({
+    directives: {
+      defaultSrc: ["'self'"],
+      frameAncestors: ["'none'"], // Prevent iframe embedding
+    },
+  })
+);
+////////////////////
 
 // Create a link token with configs which we can then use to initialize Plaid Link client-side.
 // See https://plaid.com/docs/#create-link-token
@@ -281,36 +294,26 @@ app.get('/api/auth', function (request, response, next) {
 app.get('/api/transactions', function (request, response, next) {
   Promise.resolve()
     .then(async function () {
-      // Set cursor to empty to receive all historical updates
       let cursor = null;
-
-      // New transaction updates since "cursor"
       let added = [];
       let modified = [];
-      // Removed transaction ids
       let removed = [];
       let hasMore = true;
-      // Iterate through each page of new transaction updates for item
+
       while (hasMore) {
         const request = {
           access_token: ACCESS_TOKEN,
           cursor: cursor,
         };
-        const response = await client.transactionsSync(request)
+        const response = await client.transactionsSync(request);
         const data = response.data;
 
-        // If no transactions are available yet, wait and poll the endpoint.
-        // Normally, we would listen for a webhook, but the Quickstart doesn't
-        // support webhooks. For a webhook example, see
-        // https://github.com/plaid/tutorial-resources or
-        // https://github.com/plaid/pattern
         cursor = data.next_cursor;
         if (cursor === "") {
           await sleep(2000);
           continue;
         }
 
-        // Add this page of results
         added = added.concat(data.added);
         modified = modified.concat(data.modified);
         removed = removed.concat(data.removed);
@@ -320,7 +323,6 @@ app.get('/api/transactions', function (request, response, next) {
       }
 
       const compareTxnsByDateAscending = (a, b) => (a.date > b.date) - (a.date < b.date);
-      // Return the 8 most recent transactions
       const recently_added = [...added].sort(compareTxnsByDateAscending).slice(-8);
       response.json({ latest_transactions: recently_added });
     })
