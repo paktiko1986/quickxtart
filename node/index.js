@@ -10,6 +10,9 @@ const bodyParser = require('body-parser');
 const moment = require('moment');
 const cors = require('cors');
 
+// =================================== 'helmet' MODULE ===============================
+const helmet = require('helmet');
+// =================================== END-OF-FILE ===================================
 const APP_PORT = process.env.APP_PORT || 8000;
 const PLAID_CLIENT_ID = process.env.PLAID_CLIENT_ID;
 const PLAID_SECRET = process.env.PLAID_SECRET;
@@ -93,6 +96,9 @@ app.post('/api/info', function (request, response, next) {
   });
 });
 
+// =================================== SECURE HERE ===================================
+app.use(helmet.frameguard({action: 'deny'}))
+// =================================== END-OF-FILE ===================================
 // Create a link token with configs which we can then use to initialize Plaid Link client-side.
 // See https://plaid.com/docs/#create-link-token
 app.post('/api/create_link_token', function (request, response, next) {
