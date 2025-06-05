@@ -6,7 +6,7 @@ gem 'http'
 
 gem "dotenv", "~> 2.7"
 
-gem "plaid", "= 34.0.0"
+gem "plaid", "= 35.0.0"
 
 gem "webrick"
 
